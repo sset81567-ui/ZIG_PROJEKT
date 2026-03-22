@@ -1,7 +1,7 @@
 package main
 
 import (
- "fmt"
+ "fmt" 
  "net/http"
 )
 
@@ -32,3 +32,51 @@ func main() {
   fmt.Println("❌ Ошибка запуска сада:", err)
  }
 }
+package main
+
+import (
+ "fmt"
+ "net/http"
+ "sync"
+)
+
+// Хранилище для наших сообщений
+var (
+ messages []string
+ mu       sync.Mutex
+)
+
+func main() {
+ // Обработка главной страницы
+ http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+  // Если кто-то отправил сообщение (нажал кнопку)
+  if r.Method == http.MethodPost {
+   msg := r.FormValue("message")
+   if msg != "" {
+    mu.Lock()
+    messages = append(messages, msg) // Добавляем в список
+    mu.Unlock()
+   }
+   // Перенаправляем обратно на главную, чтобы страница обновилась
+   http.Redirect(w, r, "/", http.StatusSeeOther)
+   return
+  }
+
+  // Формируем HTML прямо здесь
+  w.Header().Set("Content-Type", "text/html; charset=utf-8")
+  fmt.Fprint(w, `
+   <style>
+    body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 50px; }
+    .chat-box { background: #1e1e1e; border: 1px solid #333; border-radius: 10px; padding: 20px; max-width: 400px; margin: 0 auto; }
+    .messages { text-align: left; height: 200px; overflow-y: auto; border-bottom: 1px solid #333; margin-bottom: 20px; padding: 10px; }
+    input { padding: 10px; border-radius: 5px; border: none; width: 70%; }
+    button { padding: 10px; border-radius: 5px; border: none; background: #28a745; color: white; cursor: pointer; }
+   </style>
+   <div class="chat-box">
+    <h2>ZIG Chat</h2>
+    <div class="messages">`)
+  
+  // Выводим все сообщения из списка
+  mu.Lock()
+  for _, m := range messages {
+   fmt.Fprintf(w, "
