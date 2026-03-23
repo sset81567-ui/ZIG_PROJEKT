@@ -7,9 +7,8 @@ import (
  "sync"
 )
 
-// --- ДАННЫЕ СЕРВЕРА ---
 type User struct {
- ID, FirstName, LastName, Bio, Email, Theme string
+ ID, FirstName, Theme string
 }
 
 type Msg struct {
@@ -17,9 +16,9 @@ type Msg struct {
 }
 
 type Entity struct {
- Type, Name string
- Members    map[string]bool
- Messages   []Msg
+ Type     string
+ Members  map[string]bool
+ Messages []Msg
 }
 
 var (
@@ -29,38 +28,49 @@ var (
  mu       sync.Mutex
 )
 
-// --- ДИЗАЙН (TG STYLE) ---
 func ui(color string) string {
  if color == "" { color = "#0088cc" }
  return fmt.Sprintf(`
 <style>
-    :root { --main: %s; --bg: #0e1621; --side: #17212b; --text: #fff; --active: #2b3948; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+    :root { --main: %s; --bg: #0e1621; --side: #17212b; --text: #fff; }
+    body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
     .sidebar { width: 320px; background: var(--side); border-right: 1px solid #000; display: flex; flex-direction: column; }
-    .search-area { padding: 15px; border-bottom: 1px solid #000; }
-    .search-area input { width: 100%%; padding: 10px; border-radius: 8px; border: none; background: #242f3d; color: #fff; }
     .chat-list { flex: 1; overflow-y: auto; }
     .chat-item { padding: 15px; display: flex; align-items: center; text-decoration: none; color: #fff; border-bottom: 1px solid #0e1621; }
-    .chat-item:hover { background: var(--active); }
-    .avatar { width: 48px; height: 48px; background: var(--main); border-radius: 50%%; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px; }
-    .main-chat { flex: 1; display: flex; flex-direction: column; background: #070d14; }
-    .top-nav { padding: 15px 20px; background: var(--side); font-weight: bold; display: flex; justify-content: space-between; box-shadow: 0 2px 10px #000; }
-    .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
-    .bubble { max-width: 70%%; padding: 10px 15px; border-radius: 12px; margin-bottom: 8px; background: #182533; line-height: 1.4; }
-    .bubble.me { align-self: flex-end; background: var(--main); border-bottom-right-radius: 2px; }
+    .chat-item:hover { background: #2b3948; }
+    .avatar { width: 45px; height: 45px; background: var(--main); border-radius: 50%%; margin-right: 12px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .main-chat { flex: 1; display: flex; flex-direction: column; }
+    .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; background: #070d14; }
+    .bubble { max-width: 70%%; padding: 10px; border-radius: 12px; margin-bottom: 8px; background: #182533; position: relative; }
+    .bubble.me { align-self: flex-end; background: var(--main); }
     .input-bar { padding: 15px; background: var(--side); display: flex; gap: 10px; }
-    .input-bar input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #242f3d; color: #fff; }
-    .btn { background: var(--main); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    .profile-card { padding: 30px; background: var(--side); border-radius: 15px; margin: auto; width: 350px; text-align: center; }
-</style>`, color)
+    input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #242f3d; color: #fff; }
+    button { background: var(--main); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; }
+    .top-nav { padding: 15px; background: var(--side); display: flex; justify-content: space-between; font-weight: bold; }
+</style>
+<script>
+    // Скрипт для авто-обновления только зоны сообщений
+    setInterval(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const chat = urlParams.get('chat');
+        if (chat) {
+            fetch('/api/messages?chat=' + chat)
+                .then(response => response.text())
+                .then(html => {
+                    const msgDiv = document.getElementById('msg-container');
+                    if (msgDiv.innerHTML !== html) {
+                        msgDiv.innerHTML = html;
+                        msgDiv.scrollTop = msgDiv.scrollHeight;
+                    }
+                });
+        }
+    }, 2000); // Проверка каждые 2 секунды
+</script>`, color)
 }
 
 func main() {
- // Создаем стартовую группу
- entities["world"] = &Entity{Type: "Глобальный Сад", Name: "world", Members: make(map[string]bool)}
-
  http.HandleFunc("/login_page", func(w http.ResponseWriter, r *http.Request) {
-  fmt.Fprintf(w, "<html><head>%s</head><body style='align-items:center;justify-content:center;'><div class='profile-card'><h1>ZIG PRO</h1><form action='/register' method='POST'><input name='userid' placeholder='@id' required style='width:100%%;padding:10px;margin-bottom:10px;background:#242f3d;border:none;color:#fff;'><input name='email' type='email' placeholder='Email' required style='width:100%%;padding:10px;margin-bottom:10px;background:#242f3d;border:none;color:#fff;'><button class='btn' style='width:100%%;'>ВОЙТИ В СЕТЬ</button></form></div></body></html>", ui(""))
+  fmt.Fprintf(w, "<html><head>%s</head><body style='display:flex;justify-content:center;align-items:center;'><div style='background:#17212b;padding:30px;border-radius:15px;text-align:center;'><h1>ZIG</h1><form action='/register' method='POST'><input name='userid' placeholder='@username' required style='width:100%%;padding:10px;margin-bottom:10px;background:#242f3d;border:none;color:#fff;'><input name='email' type='email' placeholder='Email' required style='width:100%%;padding:10px;margin-bottom:10px;background:#242f3d;border:none;color:#fff;'><button style='width:100%%;padding:10px;background:#0088cc;color:#fff;border:none;border-radius:5px;'>ВОЙТИ</button></form></div></body></html>", ui(""))
  })
 
  http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
@@ -70,46 +80,58 @@ func main() {
   u := &User{ID: id, Email: email, FirstName: "User", Theme: "#0088cc"}
   users[email] = u
   byID[id] = u
-  entities["world"].Members[id] = true
   mu.Unlock()
   http.SetCookie(w, &http.Cookie{Name: "z_sess", Value: email, Path: "/"})
   http.Redirect(w, r, "/", http.StatusSeeOther)
  })
-
  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
   c, err := r.Cookie("z_sess")
   if err != nil { http.Redirect(w, r, "/login_page", http.StatusSeeOther); return }
   user := users[c.Value]
   
   fmt.Fprintf(w, "<html><head>%s</head><body>", ui(user.Theme))
-  
-  // Sidebar
-  fmt.Fprint(w, "<div class='sidebar'><div class='search-area'><form action='/search'><input name='q' placeholder='Поиск...'></form></div><div class='chat-list'>")
+  fmt.Fprint(w, "<div class='sidebar'><div style='padding:15px; border-bottom: 1px solid #000;'><form action='/search'><input name='q' placeholder='Поиск @id...' style='width:100%%;padding:8px;background:#242f3d;border:none;color:#fff;border-radius:5px;'></form></div><div class='chat-list'>")
   mu.Lock()
   for name, e := range entities {
    if e.Members[user.ID] {
-    fmt.Fprintf(w, "<a href='/?chat=%s' class='chat-item'><div class='avatar'>%s</div><div><b>%s</b><br><small>%s</small></div></a>", name, strings.ToUpper(name[:1]), name, e.Type)
+    fmt.Fprintf(w, "<a href='/?chat=%s' class='chat-item'><div class='avatar'>%s</div><b>%s</b></a>", name, strings.ToUpper(name[:1]), name)
    }
   }
   mu.Unlock()
-  fmt.Fprint(w, "</div><div style='padding:15px;'><a href='/profile' style='color:#aaa;text-decoration:none;'>⚙ Настройки</a></div></div>")
+  fmt.Fprint(w, "</div><div style='padding:15px;'><a href='/profile' style='color:#aaa;'>Настройки</a></div></div>")
 
-  // Chat Area
   chatID := r.URL.Query().Get("chat")
   fmt.Fprint(w, "<div class='main-chat'>")
   if chatID != "" && entities[chatID] != nil {
-   e := entities[chatID]
-   fmt.Fprintf(w, "<div class='top-nav'><span>#%s</span><a href='/' style='color:var(--main)'>Закрыть</a></div><div class='messages'>", chatID)
+   fmt.Fprintf(w, "<div class='top-nav'><span>#%s</span><a href='/' style='color:#0088cc;'>Закрыть</a></div>", chatID)
+   fmt.Fprint(w, "<div class='messages' id='msg-container'>")
+   // Содержимое подгрузится само или при первой загрузке
+   for _, m := range entities[chatID].Messages {
+    me := ""
+    if m.Sender == user.ID { me = "me" }
+    fmt.Fprintf(w, "<div class='bubble %s'><b>@%s</b><br>%s</div>", me, m.Sender, m.Text)
+   }
+   fmt.Fprintf(w, "</div><form class='input-bar' action='/send' method='POST'><input type='hidden' name='c' value='%s'><input name='t' placeholder='Напишите сообщение...' autofocus required><button>></button></form>", chatID)
+  } else {
+   fmt.Fprint(w, "<div style='margin:auto;color:#555;'>Выберите чат</div>")
+  }
+  fmt.Fprint(w, "</div></body></html>")
+ })
+
+ // API для получения сообщений без перезагрузки
+ http.HandleFunc("/api/messages", func(w http.ResponseWriter, r *http.Request) {
+  chat := r.URL.Query().Get("chat")
+  c, _ := r.Cookie("z_sess")
+  user := users[c.Value]
+  mu.Lock()
+  if e, ok := entities[chat]; ok {
    for _, m := range e.Messages {
     me := ""
     if m.Sender == user.ID { me = "me" }
     fmt.Fprintf(w, "<div class='bubble %s'><b>@%s</b><br>%s</div>", me, m.Sender, m.Text)
    }
-   fmt.Fprintf(w, "</div><form class='input-bar' action='/send' method='POST'><input type='hidden' name='c' value='%s'><input name='t' placeholder='Напишите сообщение...' autofocus required><button class='btn'>></button></form>", chatID)
-  } else {
-   fmt.Fprint(w, "<div style='margin:auto;color:#555;'>Выберите чат слева</div>")
   }
-  fmt.Fprint(w, "</div></body></html>")
+  mu.Unlock()
  })
 
  http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
@@ -126,34 +148,33 @@ func main() {
   q := strings.ToLower(r.URL.Query().Get("q"))
   c, _ := r.Cookie("z_sess")
   user := users[c.Value]
-  fmt.Fprintf(w, "<html><head>%s</head><body><div class='profile-card'><h3>Результаты для '%s'</h3>", ui(user.Theme), q)
+  fmt.Fprintf(w, "<html><head>%s</head><body><div style='background:#17212b;padding:30px;border-radius:15px;margin:auto;'><h3>Результаты для '%s'</h3>", ui(user.Theme), q)
   mu.Lock()
-  found := false
-  for id := range byID {
-   if strings.Contains(id, q) {
-    fmt.Fprintf(w, "<p>👤 @%s <button class='btn' onclick='alert(\"Заглушка ЛС\")'>Чат</button></p>", id)
-    found = true
-   }
+  if target, ok := byID[q]; ok {
+   chatName := user.ID + "_" + target.ID
+   if user.ID > target.ID { chatName = target.ID + "_" + user.ID }
+   fmt.Fprintf(w, "<p>👤 @%s <a href='/create_dm?target=%s'><button>Написать в ЛС</button></a></p>", target.ID, target.ID)
+  } else {
+   fmt.Fprint(w, "<p>Никто не найден</p>")
   }
   mu.Unlock()
-  if !found { fmt.Fprint(w, "<p>Ничего не найдено</p>") }
-  fmt.Fprint(w, "<br><a href='/' style='color:var(--main)'>Назад</a></div></body></html>")
+  fmt.Fprint(w, "<br><a href='/' style='color:#0088cc;'>Назад</a></div></body></html>")
  })
 
- http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
+ http.HandleFunc("/create_dm", func(w http.ResponseWriter, r *http.Request) {
+  targetID := r.URL.Query().Get("target")
   c, _ := r.Cookie("z_sess")
   user := users[c.Value]
-  fmt.Fprintf(w, "<html><head>%s</head><body style='align-items:center;justify-content:center;'><div class='profile-card'><h2>Настройки</h2><form action='/upd' method='POST'>Имя: <input name='f' value='%s' style='width:100%%;padding:8px;margin:10px 0;background:#242f3d;border:none;color:#fff;'><br>Цвет темы: <input type='color' name='th' value='%s' style='width:100%%;height:40px;border:none;background:none;'><br><button class='btn' style='width:100%%;'>СОХРАНИТЬ</button></form><br><a href='/' style='color:#aaa;'>Назад</a></div></body></html>", ui(user.Theme), user.FirstName, user.Theme)
- })
-
- http.HandleFunc("/upd", func(w http.ResponseWriter, r *http.Request) {
-  c, _ := r.Cookie("z_sess")
-  user := users[c.Value]
+  
+  chatName := user.ID + "_" + targetID
+  if user.ID > targetID { chatName = targetID + "_" + user.ID }
+  
   mu.Lock()
-  user.FirstName, user.Theme = r.FormValue("f"), r.FormValue("th")
+  if entities[chatName] == nil {
+   entities[chatName] = &Entity{Type: "ЛС", Members: map[string]bool{user.ID: true, targetID: true}}
+  }
   mu.Unlock()
-  http.Redirect(w, r, "/", http.StatusSeeOther)
+  http.Redirect(w, r, "/?chat="+chatName, http.StatusSeeOther)
  })
-
- http.ListenAndServe(":8080", nil)
+http.ListenAndServe(":8080", nil)
 }
