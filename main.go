@@ -7,6 +7,7 @@ import (
  "sync"
 )
 
+// --- МОДЕЛИ ---
 type User struct {
  ID        string
  FirstName string
@@ -35,41 +36,35 @@ var (
  mu       sync.Mutex
 )
 
-// Функция для генерации CSS с учетом выбранной темы
+// --- ДИЗАЙН ---
 func getStyle(color string) string {
- if color == "" { color = "#0088cc" } // Цвет Telegram по умолчанию
+ if color == "" { color = "#0088cc" }
  return fmt.Sprintf(`
 <style>
-    :root { --main-color: %s; --bg: #17212b; --sidebar: #0e1621; --text: #ffffff; }
-    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; overflow: hidden; }
-    
-    /* Сайдбар */
-    .sidebar { width: 300px; background: var(--sidebar); border-right: 1px solid #000; display: flex; flex-direction: column; }
-    .search-box { padding: 15px; border-bottom: 1px solid #111; }
-    .search-box input { width: 100%%; padding: 8px; background: #242f3d; border: none; color: #fff; border-radius: 5px; }
-    .chat-list { flex: 1; overflow-y: auto; }
-    .chat-item { padding: 15px; cursor: pointer; border-bottom: 1px solid #111; display: flex; align-items: center; text-decoration: none; color: #fff; }
-    .chat-item:hover { background: #2b3948; }
-    .avatar { width: 45px; height: 45px; background: var(--main-color); border-radius: 50%%; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-weight: bold; }
-
-    /* Основная зона */
-    .main-area { flex: 1; display: flex; flex-direction: column; background: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png'); }
-    .top-bar { padding: 10px 20px; background: var(--sidebar); display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-    .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
-    .bubble { max-width: 70%%; padding: 10px 15px; border-radius: 15px; margin-bottom: 10px; background: #182533; position: relative; }
-    .bubble.me { align-self: flex-end; background: var(--main-color); }
-    .input-area { padding: 20px; background: var(--sidebar); display: flex; gap: 10px; }
-    .input-area input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #242f3d; color: #fff; }
-    
-    button { background: var(--main-color); color: #fff; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; }
-    .settings-panel { padding: 20px; background: #242f3d; border-radius: 10px; margin: 20px; }
+    :root { --main: %s; --bg: #0e1621; --side: #17212b; --text: #fff; }
+    body { background: var(--bg); color: var(--text); font-family: sans-serif; margin: 0; display: flex; height: 100vh; }
+    .sidebar { width: 300px; background: var(--side); border-right: 1px solid #000; display: flex; flex-direction: column; }
+    .chat-item { padding: 15px; border-bottom: 1px solid #000; text-decoration: none; color: #fff; display: flex; align-items: center; }
+    .chat-item:hover { background: #242f3d; }
+    .avatar { width: 40px; height: 40px; background: var(--main); border-radius: 50%%; margin-right: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    .main { flex: 1; display: flex; flex-direction: column; }
+    .top { padding: 15px; background: var(--side); font-weight: bold; box-shadow: 0 2px 5px #000; }
+    .msgs { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; background: #070d14; }
+    .bubble { max-width: 70%%; padding: 10px; border-radius: 10px; margin-bottom: 10px; background: #182533; }
+    .bubble.me { align-self: flex-end; background: var(--main); }
+    .input-area { padding: 15px; background: var(--side); display: flex; gap: 10px; }
+    input { flex: 1; padding: 10px; border-radius: 5px; border: none; background: #242f3d; color: #fff; }
+    button { background: var(--main); color: #fff; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; }
+    .profile-box { padding: 20px; background: #242f3d; border-radius: 10px; margin: 20px; }
 </style>`, color)
 }
 
 func main() {
- // Регистрация (упрощенно для примера)
+ // Инициализация общего канала
+ entities["общий"] = &Entity{Type: "канал", Name: "общий", Members: make(map[string]bool)}
+
  http.HandleFunc("/login_page", func(w http.ResponseWriter, r *http.Request) {
-  fmt.Fprintf(w, "<html><head>%s</head><body style='justify-content:center; align-items:center;'><div class='settings-panel' style='width:300px;'><h2>ZIG Welcome</h2><form action='/register' method='POST'><input name='userid' placeholder='@username' required style='width:100%%; margin-bottom:10px;'><input name='email' type='email' placeholder='Email' required style='width:100%%; margin-bottom:10px;'><button style='width:100%%;'>ВОЙТИ В САД</button></form></div></body></html>", getStyle(""))
+  fmt.Fprintf(w, "<html><head>%s</head><body style='justify-content:center;align-items:center;'><div class='profile-box'><h2>ZIG GARDEN</h2><form action='/register' method='POST'><input name='userid' placeholder='@username' required><br><br><input name='email' type='email' placeholder='Email' required><br><br><button style='width:100%%'>ВОЙТИ</button></form></div></body></html>", getStyle(""))
  })
 
  http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
@@ -79,89 +74,70 @@ func main() {
   u := &User{ID: id, Email: email, FirstName: "Новый", LastName: "Росток", Theme: "#0088cc"}
   users[email] = u
   byID[id] = u
+  entities["общий"].Members[id] = true
   mu.Unlock()
   http.SetCookie(w, &http.Cookie{Name: "user_session", Value: email, Path: "/"})
   http.Redirect(w, r, "/", http.StatusSeeOther)
  })
 
- // Главный интерфейс
  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
   cookie, err := r.Cookie("user_session")
   if err != nil { http.Redirect(w, r, "/login_page", http.StatusSeeOther); return }
   user := users[cookie.Value]
 
   fmt.Fprintf(w, "<html><head>%s</head><body>", getStyle(user.Theme))
-  
-  // Сайдбар
-  fmt.Fprint(w, "<div class='sidebar'><div class='search-box'><form action='/search' method='GET'><input name='q' placeholder='Поиск чатов или людей...'></form></div><div class='chat-list'>")
-  for name, e := range entities {
-   if e.Members[user.ID] {
-    fmt.Fprintf(w, "<a href='/?chat=%s' class='chat-item'><div class='avatar'>%s</div><div><b>%s</b><br><small>%s</small></div></a>", name, strings.ToUpper(name[:1]), name, e.Type)
+  fmt.Fprint(w, "<div class='sidebar'><div style='padding:15px'><b>ZIG</b></div><div class='chat-list'>")
+  mu.Lock()
+  for name := range entities {
+   if entities[name].Members[user.ID] {
+    fmt.Fprintf(w, "<a href='/?chat=%s' class='chat-item'><div class='avatar'>%s</div>%s</a>", name, strings.ToUpper(name[:1]), name)
    }
   }
-  fmt.Fprint(w, "</div><div style='padding:10px;'><a href='/profile'>⚙ Настройки профиля</a></div></div>")
+  mu.Unlock()
+  fmt.Fprint(w, "</div><div style='margin-top:auto;padding:15px;'><a href='/profile' style='color:#fff'>⚙ Настройки</a></div></div>")
 
-  // Основная область чата
   chatName := r.URL.Query().Get("chat")
-  fmt.Fprint(w, "<div class='main-area'>")
-  if chatName != "" {
+  fmt.Fprint(w, "<div class='main'>")
+  if chatName != "" && entities[chatName] != nil {
    e := entities[chatName]
-   fmt.Fprintf(w, "<div class='top-bar'><b>#%s</b> <span>%d участников</span></div>", chatName, len(e.Members))
-   fmt.Fprint(w, "<div class='messages'>")
+   fmt.Fprintf(w, "<div class='top'>#%s</div><div class='msgs'>", chatName)
    for _, m := range e.Messages {
-    class := ""
-    if m.Sender == user.ID { class = "me" }
-    fmt.Fprintf(w, "<div class='bubble %s'><b>@%s</b><br>%s</div>", class, m.Sender, m.Text)
+    cls := ""
+    if m.Sender == user.ID { cls = "me" }
+    fmt.Fprintf(w, "<div class='bubble %s'><b>@%s</b><br>%s</div>", cls, m.Sender, m.Text)
    }
-   fmt.Fprintf(w, "</div><form class='input-area' action='/send' method='POST'><input type='hidden' name='chan' value='%s'><input name='text' placeholder='Напишите сообщение...' autofocus><button>ОТПРАВИТЬ</button></form>", chatName)
+   fmt.Fprintf(w, "</div><form class='input-area' action='/send' method='POST'><input type='hidden' name='chan' value='%s'><input name='text' placeholder='Сообщение...'><button>ОТПРАВИТЬ</button></form>", chatName)
   } else {
-   fmt.Fprint(w, "<div style='display:flex; height:100%%; align-items:center; justify-content:center; color:#555;'>Выберите чат, чтобы начать общение</div>")
+   fmt.Fprint(w, "<div style='display:flex;height:100%%;align-items:center;justify-content:center;'>Выберите чат</div>")
   }
   fmt.Fprint(w, "</div></body></html>")
  })
 
- // Настройки профиля
- http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
-  cookie, _ := r.Cookie("user_session")
-  user := users[cookie.Value]
-  fmt.Fprintf(w, "<html><head>%s</head><body style='justify-content:center; align-items:center;'><div class='settings-panel'><h2>Профиль</h2><form action='/update_profile' method='POST'>Имя: <input name='first' value='%s'><br>Фамилия: <input name='last' value='%s'><br>О себе: <input name='bio' value='%s'><br>Цвет темы: <input type='color' name='theme' value='%s'><br><button>СОХРАНИТЬ</button></form><br><a href='/'>← Назад в чаты</a></div></body></html>", getStyle(user.Theme), user.FirstName, user.LastName, user.Bio, user.Theme)
- })
-
- http.HandleFunc("/update_profile", func(w http.ResponseWriter, r *http.Request) {
+ http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
+  chanName, text := r.FormValue("chan"), r.FormValue("text")
   cookie, _ := r.Cookie("user_session")
   user := users[cookie.Value]
   mu.Lock()
-  user.FirstName = r.FormValue("first")
-  user.LastName = r.FormValue("last")
-  user.Bio = r.FormValue("bio")
-  user.Theme = r.FormValue("theme")
+  entities[chanName].Messages = append(entities[chanName].Messages, Msg{Sender: user.ID, Text: text})
+  mu.Unlock()
+  http.Redirect(w, r, "/?chat="+chanName, http.StatusSeeOther)
+ })
+
+ http.HandleFunc("/profile", func(w http.ResponseWriter, r *http.Request) {
+  cookie, _ := r.Cookie("user_session")
+  user := users[cookie.Value]
+  fmt.Fprintf(w, "<html><head>%s</head><body style='justify-content:center;align-items:center;'><div class='profile-box'><h3>Настройки профиля</h3><form action='/update' method='POST'>Имя: <input name='f' value='%s'><br><br>Цвет темы: <input type='color' name='t' value='%s'><br><br><button>СОХРАНИТЬ</button></form><br><a href='/' style='color:#fff'>Назад</a></div></body></html>", getStyle(user.Theme), user.FirstName, user.Theme)
+ })
+
+ http.HandleFunc("/update", func(w http.ResponseWriter, r *http.Request) {
+  cookie, _ := r.Cookie("user_session")
+  user := users[cookie.Value]
+  mu.Lock()
+  user.FirstName = r.FormValue("f")
+  user.Theme = r.FormValue("t")
   mu.Unlock()
   http.Redirect(w, r, "/", http.StatusSeeOther)
  })
-
-    // Поиск (исправленный)
-    http.HandleFunc("/search", func(w http.ResponseWriter, r *http.Request) {
-        q := strings.ToLower(r.URL.Query().Get("q"))
-        cookie, _ := r.Cookie("user_session")
-        user := users[cookie.Value]
-        fmt.Fprintf(w, "<html><head>%s</head><body><div class='container' style='margin:20px auto; width:400px;'><h3>Результаты поиска: '%s'</h3>", getStyle(user.Theme), q)
-        mu.Lock()
-        for id, u := range byID {
-            if strings.Contains(id, q) {
-                fmt.Fprintf(w, "<div class='chat-item'>👤 @%s (%s %s)</div>", u.ID, u.FirstName, u.LastName)
-            }
-        }
-        for name, e := range entities {
-            if strings.Contains(name, q) {
-                fmt.Fprintf(w, "<div class='chat-item'>🌐 %s: %s <a href='/join?name=%s'>[ВСТУПИТЬ]</a></div>", e.Type, name, name)
-            }
-        }
-        mu.Unlock()
-        fmt.Fprint(w, "<br><a href='/'>Назад</a></div></body></html>")
-    })
-
-    // Остальные функции (send, join, leave) оставляем как в прошлый раз...
-    // (Для краткости они тут подразумеваются)
 
  http.ListenAndServe(":8080", nil)
 }
