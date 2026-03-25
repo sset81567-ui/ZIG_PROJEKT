@@ -2,230 +2,98 @@ package main
 
 import "fmt"
 
-func GetLayout(content string, u *User) string {
- // Настройки по умолчанию
- theme := "#3498db"
- lang := "ru"
- bio := "Привет! Я использую ZIG."
- name := "Новый пользователь"
- 
- if u != nil {
-  if u.ThemeColor != "" { theme = u.ThemeColor }
-  if u.Language != "" { lang = u.Language }
-  if u.Bio != "" { bio = u.Bio }
-  name = u.GetDisplayName()
- }
+func GetLayout(title string, u *User) string {
+ clr := "#007AFF"
+ if u.ThemeColor != "" { clr = u.ThemeColor }
 
  return fmt.Sprintf(`
 <!DOCTYPE html>
-<html lang="%s">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ZIG Global</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZIG | %s</title>
     <style>
         :root {
-            --main-clr: %s;
-            --bg-black: #000000;
-            --panel-bg: #0a0a0a;
-            --card-bg: #111111;
-            --border-clr: #1f1f1f;
-            --text-gray: #888888;
+            --accent: %s;
+            --bg: #000000;
+            --panel: #0a0a0a;
+            --text: #ffffff;
+            --gray: #8e8e93;
+            --border: #1c1c1e;
         }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
+        * { box-sizing: border-box; }
         body { 
-            background: var(--bg-black); 
-            color: #ffffff; 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            display: flex; 
-            height: 100vh; 
-            overflow: hidden; 
+            background: var(--bg); color: var(--text); 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto; 
+            margin: 0; display: flex; height: 100vh; overflow: hidden;
         }
-
-        /* Боковая панель (Sidebar) */
-        .sidebar { 
-            width: 380px; 
-            background: var(--panel-bg); 
-            border-right: 1px solid var(--border-clr); 
-            display: flex; 
-            flex-direction: column; 
-            transition: all 0.3s ease;
-        }
-
-        .header { 
-            padding: 24px 20px; 
-            font-size: 28px; 
-            font-weight: 900; 
-            color: var(--main-clr); 
-            letter-spacing: -1.5px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Поиск */
-        .search-area { padding: 0 15px 15px 15px; }
-        .search-input { 
-            width: 100%%; 
-            padding: 14px 18px; 
-            border-radius: 14px; 
-            border: 1px solid var(--border-clr); 
-            background: #141414; 
-            color: #fff; 
-            font-size: 16px; 
-            outline: none;
-        }
-        .search-input:focus { border-color: var(--main-clr); background: #1a1a1a; }
-
-        /* Секция профиля */
-        .scroll-content { flex-grow: 1; overflow-y: auto; padding: 10px; }
         
-        .profile-card { 
-            background: var(--card-bg); 
-            padding: 24px; 
-            border-radius: 24px; 
-            border: 1px solid var(--border-clr); 
-            margin-bottom: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        /* Sidebar */
+        .side { 
+            width: 380px; background: var(--panel); 
+            border-right: 1px solid var(--border); 
+            display: flex; flex-direction: column; 
         }
-
-        .avatar-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+        .head { padding: 30px 20px; font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: -1.5px; }
+        
+        /* Profile Card */
+        .card { 
+            background: #151517; margin: 15px; padding: 25px; 
+            border-radius: 28px; border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
-
-        .big-avatar { 
-            width: 64px; 
-            height: 64px; 
-            background: var(--main-clr); 
-            border-radius: 22px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            font-size: 28px; 
-            font-weight: bold;
-            box-shadow: 0 0 20px var(--main-clr);
+        .av-big { 
+            width: 70px; height: 70px; background: var(--accent); 
+            border-radius: 22px; display: flex; align-items: center; 
+            justify-content: center; font-size: 30px; font-weight: bold; margin-bottom: 15px;
         }
+        
+        /* Stats/Gifts */
+        .stats { display: flex; gap: 10px; margin: 15px 0; }
+        .stat-item { background: #1c1c1e; padding: 8px 15px; border-radius: 12px; font-size: 13px; color: var(--gray); }
+        .stat-item b { color: var(--text); }
 
-        .user-info b { font-size: 18px; display: block; }
-        .user-info span { color: var(--text-gray); font-size: 13px; }
-
-        /* Форма настроек */
-        .field-label { 
-            font-size: 11px; 
-            color: var(--text-gray); 
-            text-transform: uppercase; 
-            font-weight: 800; 
-            margin: 15px 0 6px 4px; 
-            display: block; 
+        /* Inputs */
+        input, textarea { 
+            width: 100%%; background: #2c2c2e; border: 1px solid transparent; 
+            color: #fff; padding: 14px; border-radius: 14px; margin-bottom: 12px;
+            font-size: 15px; transition: 0.2s;
         }
-
-        .input-box { 
-            width: 100%%; 
-            background: #1a1a1a; 
-            border: 1px solid var(--border-clr); 
-            color: #fff; 
-            padding: 12px; 
-            border-radius: 12px; 
-            font-size: 15px;
-            margin-bottom: 5px;
-        }
-
-        .color-well {
-            width: 100%%;
-            height: 45px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            border-radius: 10px;
-        }
+        input:focus { border-color: var(--accent); outline: none; background: #3a3a3c; }
 
         .save-btn { 
-            background: var(--main-clr); 
-            color: #fff; 
-            border: none; 
-            padding: 16px; 
-            width: 100%%; 
-            border-radius: 16px; 
-            font-weight: bold; 
-            font-size: 16px;
-            cursor: pointer; 
-            margin-top: 20px; 
-            transition: 0.2s;
+            background: var(--accent); color: #fff; border: none; 
+            width: 100%%; padding: 16px; border-radius: 16px; 
+            font-weight: 700; cursor: pointer; transition: 0.3s;
         }
-        .save-btn:active { transform: scale(0.97); }
+        .save-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px var(--accent); }
 
-        /* Главная область */
-        .chat-area { 
-            flex-grow: 1; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            background: #050505; 
-            text-align: center;
-        }
-
-        .placeholder-icon { font-size: 80px; color: #1a1a1a; margin-bottom: 20px; }
-
-        @media (max-width: 768px) {
-            .sidebar { width: 100%%; }
-            .chat-area { display: none; }
-        }
+        .main { flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .logo-bg { font-size: 120px; font-weight: 900; opacity: 0.03; user-select: none; }
     </style>
 </head>
 <body>
-    <div class="sidebar">
-        <div class="header">
-            <span>ZIG</span>
-            <span style="font-size: 12px; opacity: 0.3;">v1.0-Global</span>
-        </div>
-        
-        <div class="search-area">
-            <input type="text" class="search-input" placeholder="Поиск (4-24 символа)...">
-        </div>
-
-        <div class="scroll-content">
-            <div class="profile-card">
-                <div class="avatar-container">
-                    <div class="big-avatar">Z</div>
-                    <div class="user-info">
-                        <b>%s</b>
-                        <span>Zoom In Global</span>
-                    </div>
-                </div>
-
-                <form action="/update-profile" method="POST">
-                    <span class="field-label">О себе (Bio)</span>
-                    <textarea name="bio" class="input-box" rows="3" placeholder="Расскажите о себе...">%s</textarea>
-                    
-                    <span class="field-label">Язык</span>
-                    <select name="lang" class="input-box">
-                        <option value="ru" %s>Русский (Russian)</option>
-                        <option value="en" %s>English (UK)</option>
-                    </select>
-
-                    <span class="field-label">Цвет оформления</span>
-                    <input type="color" name="theme" class="color-well" value="%s">
-                    
-                    <button type="submit" class="save-btn">Сохранить профиль</button>
-                </form>
+    <div class="side">
+        <div class="head">ZIG GLOBAL</div>
+        <div class="card">
+            <div class="av-big">Z</div>
+            <h2 style="margin:0;">%s</h2>
+            <div class="stats">
+                <div class="stat-item">🧸 Мишки: <b>%d</b></div>
+                <div class="stat-item">💎 Pro: <b>Нет</b></div>
             </div>
+            <form action="/update" method="POST">
+                <input type="text" name="username" placeholder="Никнейм" value="%s">
+                <textarea name="bio" rows="3" placeholder="О себе...">%s</textarea>
+                <button type="submit" class="save-btn">Сохранить профиль</button>
+            </form>
         </div>
     </div>
-
-    <div class="chat-area">
-        <div class="placeholder-icon">ZIG</div>
-        <h2 style="color: #222;">Выберите чат, чтобы начать общение</h2>
+    <div class="main">
+        <div class="logo-bg">ZIG</div>
+        <p style="color: var(--gray);">Выберите чат, чтобы начать общение</p>
     </div>
 </body>
-</html>`, lang, theme, name, bio, 
- func()string{if lang=="ru"{return "selected"};return ""}(), 
- func()string{if lang=="en"{return "selected"};return ""}(), 
- theme)
+</html>`, title, clr, u.FullName, u.MishkaCount, u.Username, u.Bio)
 }

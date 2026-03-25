@@ -7,19 +7,18 @@ import (
 )
 
 func main() {
- // Инициализируем тестового юзера, чтобы не было пустых переменных
- testUser := &User{FullName: "Admin", ThemeColor: "#3498db", Language: "ru"}
+ // Маршруты
+ http.HandleFunc("/", HandleHome)
+ http.HandleFunc("/update", HandleUpdate)
 
- http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-  content := `<div class="empty-state"><h3>Выберите чат</h3><p>Или создайте новый канал</p></div>`
-  fmt.Fprint(w, GetLayout(content, testUser))
- })
-
- http.HandleFunc("/register", RegisterHandler)
-
+ // Порт для Render
  port := os.Getenv("PORT")
  if port == "" { port = "8080" }
 
- fmt.Println("ZIG запущен! Порт:", port)
- http.ListenAndServe(":"+port, nil)
+ fmt.Println("🚀 ZIG GLOBAL запущен!")
+ fmt.Println("🔗 Адрес: http://localhost:" + port)
+ 
+ if err := http.ListenAndServe(":"+port, nil); err != nil {
+  fmt.Printf("Ошибка: %v\n", err)
+ }
 }

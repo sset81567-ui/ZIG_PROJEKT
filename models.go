@@ -5,54 +5,39 @@ import (
  "time"
 )
 
-// User - Структура пользователя со всеми твоими идеями
+// User — основной профиль со всеми фишками
 type User struct {
  ID           string
  FullName     string
- Username     string    // Лимит 4-24 символа
+ Username     string
  Email        string
- Password     string
- Bio          string    // О себе
- AvatarURL    string
- Language     string    // "ru" или "en"
- ThemeColor   string    // Твой любимый цвет
- IsVerified   bool      // Подтверждена ли почта
- VerifyCode   string    // 6-значный код
- BlockedUsers []string  // Черный список
+ Bio          string
+ ThemeColor   string // Для кастомного дизайна
+ Language     string
+ IsPro        bool      // Для премиум-статуса
+ MishkaCount  int       // Кол-во подарков «Мишка»
+ LastSeen     time.Time
  CreatedAt    time.Time
 }
 
-// Message - Сообщения (и для лички, и для Избранного)
-type Message struct {
- ID         string
- SenderID   string
- ReceiverID string    // Если SenderID == ReceiverID, это Избранное
- Text       string
- IsRead     bool
- CreatedAt  time.Time
-}
-
-// Entity - Группы и Каналы
+// Entity — чаты, группы или каналы
 type Entity struct {
- ID          string
- Name        string
- Type        string    // "group" или "channel"
- Description string
- IsPublic    bool
- OwnerID     string
- Admins      []string
- Members     []string
+ ID        string
+ Name      string
+ OwnerID   string
+ Members   []string
+ IsPrivate bool
+ AvatarURL string
 }
 
-// Глобальное хранилище данных
+// Глобальное хранилище с защитой от сбоев (Mutex)
 var (
- mu       sync.RWMutex
- Users    = make(map[string]*User)
- Entities = make(map[string]*Entity)
- Messages []Message
+ DataMutex sync.RWMutex
+ Users     = make(map[string]*User)
+ Entities  = make(map[string]*Entity)
 )
 
-// Вспомогательные функции (Логика данных)
+// GetDisplayName возвращает ник или имя
 func (u *User) GetDisplayName() string {
  if u.Username != "" {
   return "@" + u.Username
@@ -60,17 +45,9 @@ func (u *User) GetDisplayName() string {
  return u.FullName
 }
 
-func (e *Entity) IsAdmin(userID string) bool {
- if e.OwnerID == userID { return true }
- for _, id := range e.Admins {
-  if id == userID { return true }
- }
- return false
-}
-
-func (e *Entity) AddMember(userID string) {
- for _, id := range e.Members {
-  if id == userID { return }
- }
- e.Members = append(e.Members, userID)
+// AddMishka — функция для вручения подарка
+func (u *User) AddMishka() {
+ DataMutex.Lock()
+ u.MishkaCount++
+ DataMutex.Unlock()
 }
