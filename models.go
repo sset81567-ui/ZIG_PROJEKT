@@ -1,53 +1,79 @@
 package main
 
 import (
+ "math/rand"
  "sync"
  "time"
 )
 
-// User — основной профиль со всеми фишками
+// Структура пользователя со всеми фишками ZIG
 type User struct {
- ID           string
- FullName     string
- Username     string
- Email        string
- Bio          string
- ThemeColor   string // Для кастомного дизайна
- Language     string
- IsPro        bool      // Для премиум-статуса
- MishkaCount  int       // Кол-во подарков «Мишка»
- LastSeen     time.Time
- CreatedAt    time.Time
+ ID               string
+ FullName         string
+ Username         string
+ Email            string
+ Bio              string
+ AvatarURL        string
+ Language         string // ru, uk, be, en
+ ThemeColor       string
+ 
+ // Безопасность и авторизация
+ VerificationCode string
+ Attempts         int
+ BlockedUntil     time.Time // Бан 10 мин за неверные коды
+ DeletedUntil     time.Time // Бан 24 часа после удаления
+ CloudPassword    string
+ PasswordHint     string
+ 
+ // Статусы
+ IsPro            bool
+ IsAdmin          bool
+ HideLastSeen     bool
+ HideReadStatus   bool
+ MishkaCount      int
 }
 
-// Entity — чаты, группы или каналы
-type Entity struct {
- ID        string
- Name      string
- OwnerID   string
- Members   []string
- IsPrivate bool
- AvatarURL string
+// Структура чатов и каналов
+type Chat struct {
+ ID         string
+ Name       string
+ Username   string
+ AvatarURL  string
+ IsChannel  bool
+ IsPrivate  bool
+ InviteLink string
+ OwnerID    string
+ Members    []string
 }
 
-// Глобальное хранилище с защитой от сбоев (Mutex)
 var (
- DataMutex sync.RWMutex
- Users     = make(map[string]*User)
- Entities  = make(map[string]*Entity)
+ DataMutex  sync.RWMutex
+ Users      = make(map[string]*User)
+ Chats      = make(map[string]*Chat)
+ PromoCodes = map[string]bool{"ZIG_PRO_2026": true, "CREATOR_GIFT": true}
 )
 
-// GetDisplayName возвращает ник или имя
-func (u *User) GetDisplayName() string {
- if u.Username != "" {
-  return "@" + u.Username
+// Генерация случайного 6-значного кода
+func generateCode() string {
+ const charset = "0123456789"
+ b := make([]byte, 6)
+ for i := range b {
+  b[i] = charset[rand.Intn(len(charset))]
  }
- return u.FullName
+ return string(b)
 }
 
-// AddMishka — функция для вручения подарка
-func (u *User) AddMishka() {
- DataMutex.Lock()
- u.MishkaCount++
- DataMutex.Unlock()
+func init() {
+ rand.Seed(time.Now().UnixNano())
+ // Создаем твой аккаунт Бога (Создателя)
+ Users["zipsakyra5@gmail.com"] = &User{
+  FullName:      "Создатель",
+  Username:      "admin",
+  Email:         "zipsakyra5@gmail.com",
+  CloudPassword: "1D467fd67kk",
+  IsAdmin:       true,
+  IsPro:         true,
+  ThemeColor:    "#FFD700", // Золотой акцент
+  Language:      "ru",
+ }
 }
