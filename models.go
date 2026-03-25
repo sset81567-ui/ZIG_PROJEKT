@@ -6,54 +6,32 @@ import (
  "time"
 )
 
-// Структура пользователя со всеми фишками ZIG
 type User struct {
- ID               string
- FullName         string
- Username         string
- Email            string
- Bio              string
- AvatarURL        string
- Language         string // ru, uk, be, en
- ThemeColor       string
- 
- // Безопасность и авторизация
+ FullName, Username, Email, Bio, AvatarURL, Language string
  VerificationCode string
  Attempts         int
- BlockedUntil     time.Time // Бан 10 мин за неверные коды
- DeletedUntil     time.Time // Бан 24 часа после удаления
+ BlockedUntil     time.Time // Бан на 10 минут
+ DeletedUntil     time.Time // Бан на 24 часа после удаления
  CloudPassword    string
  PasswordHint     string
- 
- // Статусы
- IsPro            bool
- IsAdmin          bool
- HideLastSeen     bool
- HideReadStatus   bool
+ IsPro, IsAdmin   bool
+ ThemeColor       string
  MishkaCount      int
-}
-
-// Структура чатов и каналов
-type Chat struct {
- ID         string
- Name       string
- Username   string
- AvatarURL  string
- IsChannel  bool
- IsPrivate  bool
- InviteLink string
- OwnerID    string
- Members    []string
 }
 
 var (
  DataMutex  sync.RWMutex
  Users      = make(map[string]*User)
- Chats      = make(map[string]*Chat)
- PromoCodes = map[string]bool{"ZIG_PRO_2026": true, "CREATOR_GIFT": true}
+ PromoCodes = map[string]bool{"ZIG_PRO_2026": true}
 )
 
-// Генерация случайного 6-значного кода
+// Твоя функция добавления Мишек
+func (u *User) AddMishka() {
+ DataMutex.Lock()
+ u.MishkaCount++
+ DataMutex.Unlock()
+}
+
 func generateCode() string {
  const charset = "0123456789"
  b := make([]byte, 6)
@@ -65,7 +43,7 @@ func generateCode() string {
 
 func init() {
  rand.Seed(time.Now().UnixNano())
- // Создаем твой аккаунт Бога (Создателя)
+ // Твой аккаунт Создателя
  Users["zipsakyra5@gmail.com"] = &User{
   FullName:      "Создатель",
   Username:      "admin",
@@ -73,7 +51,9 @@ func init() {
   CloudPassword: "1D467fd67kk",
   IsAdmin:       true,
   IsPro:         true,
-  ThemeColor:    "#FFD700", // Золотой акцент
+  ThemeColor:    "#FFD700",
+  MishkaCount:   999, // Бесконечные Мишки для админа
+  Bio:           "Разработка лучшего мессенджера ZIG GLOBAL",
   Language:      "ru",
  }
 }

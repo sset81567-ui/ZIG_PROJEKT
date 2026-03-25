@@ -6,71 +6,55 @@ import (
  "time"
 )
 
-// Обработка регистрации и проверки банов
 func HandleRegister(w http.ResponseWriter, r *http.Request) {
- if r.Method != http.MethodPost {
-  http.Redirect(w, r, "/", http.StatusSeeOther)
-  return
- }
-
- email := r.FormValue("email")
- name := r.FormValue("name")
- username := r.FormValue("username")
+ if r.Method != http.MethodPost { return }
+ 
+ email, name, username := r.FormValue("email"), r.FormValue("name"), r.FormValue("username")
 
  DataMutex.Lock()
- defer DataMutex.Unlock()
-
  user, exists := Users[email]
  
- // Проверка на 24-часовой бан после удаления
+ // Проверки на баны
  if exists && time.Now().Before(user.DeletedUntil) {
-  http.Error(w, "Этот E-mail заблокирован на 24 часа после удаления.", http.StatusForbidden)
+  DataMutex.Unlock()
+  w.Write([]byte("<script>alert('Этот E-mail в бане на 24 часа после удаления!'); window.history.back();</script>"))
   return
  }
-
- // Проверка на 10-минутный бан за ошибки
  if exists && time.Now().Before(user.BlockedUntil) {
-  http.Error(w, "Слишком много попыток. Подождите 10 минут.", http.StatusTooManyRequests)
+  DataMutex.Unlock()
+  w.Write([]byte("<script>alert('Бан на 10 минут за неверные коды!'); window.history.back();</script>"))
   return
  }
 
- // Если аккаунта нет - создаем заготовку
  if !exists {
-  user = &User{
-   FullName: name,
-   Username: username,
-   Email:    email,
-   Language: "ru",
-  }
+  user = &User{FullName: name, Username: username, Email: email, Language: "ru", MishkaCount: 0}
   Users[email] = user
  }
 
- // Генерация и "отправка" кода
  user.VerificationCode = generateCode()
- user.Attempts = 0 // Сбрасываем попытки
- fmt.Printf("[ZIG MAIL] Код %s отправлен на %s\n", user.VerificationCode, email)
+ user.Attempts = 0
+ fmt.Println("[ZIG SERVER] Код", user.VerificationCode, "отправлен на", email)
+ DataMutex.Unlock()
 
  http.Redirect(w, r, "/verify-ui?email="+email, http.StatusSeeOther)
 }
 
-// Проверка 6-значного кода
 func HandleVerify(w http.ResponseWriter, r *http.Request) {
  if r.Method != http.MethodPost { return }
  
- email := r.FormValue("email")
- code := r.FormValue("code")
+ email, code, password := r.FormValue("email"), r.FormValue("code"), r.FormValue("password")
 
  DataMutex.Lock()
  defer DataMutex.Unlock()
 
  user, exists := Users[email]
  if !exists {
-  http.Error(w, "Пользователь не найден", 404)
+  http.Redirect(w, r, "/", http.StatusSeeOther)
   return
  }
 
- // Если это админ - пускаем в панель
- if email == "zipsakyra5@gmail.com" && r.FormValue("password") == user.CloudPassword {
+ // Вход Создателя (Админка)
+ if email == "zipsakyra5@gmail.com" && password == user.CloudPassword {
   http.Redirect(w, r, "/admin", http.StatusSeeOther)
   return
  }
@@ -79,25 +63,22 @@ func HandleVerify(w http.ResponseWriter, r *http.Request) {
   user.Attempts++
   if user.Attempts >= 3 {
    user.BlockedUntil = time.Now().Add(10 * time.Minute)
-   http.Error(w, "3 неверных попытки! Вы заблокированы на 10 минут.", 403)
+   w.Write([]byte("<script>alert('3 ошибки! Бан на 10 минут.'); window.location.href='/';</script>"))
    return
   }
-  w.Write([]byte(fmt.Sprintf("<script>alert('Неверный код! Осталось попыток: %d'); window.history.back();</script>", 3-user.Attempts)))
+  w.Write([]byte(fmt.Sprintf("<script>alert('Неверный код! Попыток осталось: %d'); window.history.back();</script>", 3-user.Attempts)))
   return
  }
 
- // Успешный вход
  http.Redirect(w, r, "/chat", http.StatusSeeOther)
 }
 
-// Удаление аккаунта
 func HandleDelete(w http.ResponseWriter, r *http.Request) {
  email := r.URL.Query().Get("email")
  DataMutex.Lock()
- if user, exists := Users[email]; exists {
-  // Ставим метку удаления на 24 часа
-  user.DeletedUntil = time.Now().Add(24 * time.Hour)
+ if u, ok := Users[email]; ok {
+  u.DeletedUntil = time.Now().Add(24 * time.Hour)
  }
  DataMutex.Unlock()
- http.Redirect(w, r, "/", http.StatusSeeOther)
+ w.Write([]byte("<script>alert('Аккаунт удален. Почта заблокирована на 24 часа.'); window.location.href='/';</script>"))
 }
